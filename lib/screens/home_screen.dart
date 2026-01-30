@@ -28,11 +28,13 @@ class _HomeScreenState extends State<HomeScreen> {
       // Update existing todo
       if (await controller.updateTodo(text)) {
         _textController.clear();
+        controller.setFilterQuery('');
       }
     } else {
       // Add new todo
       if (await controller.addTodo(text)) {
         _textController.clear();
+        controller.setFilterQuery('');
       }
     }
   }
