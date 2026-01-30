@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "812113344246",
+    "project_id": "todo-challenge-vtech",
+    "storage_bucket": "todo-challenge-vtech.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:812113344246:android:fd1ea6443458cebe099ed7",
+        "android_client_info": {
+          "package_name": "com.example.todo_challenge"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdc07w0RghP8fSsGbx2RDLgWtQNFDypjU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

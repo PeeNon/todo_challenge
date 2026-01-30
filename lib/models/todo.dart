@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Todo {
   final String id;
   final String title;
@@ -22,6 +24,26 @@ class Todo {
       title: title ?? this.title,
       isDone: isDone ?? this.isDone,
       createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  // Convert Todo to Firestore map
+  Map<String, dynamic> toFirestore() {
+    return {
+      'title': title,
+      'isDone': isDone,
+      'createdAt': Timestamp.fromDate(createdAt),
+    };
+  }
+
+  // Create Todo from Firestore document
+  factory Todo.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Todo(
+      id: doc.id,
+      title: data['title'] ?? '',
+      isDone: data['isDone'] ?? false,
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 }

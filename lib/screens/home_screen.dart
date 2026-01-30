@@ -21,17 +21,17 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void _handleSubmit(TodoController controller) {
+  Future<void> _handleSubmit(TodoController controller) async {
     final text = _textController.text;
 
     if (controller.isEditing) {
       // Update existing todo
-      if (controller.updateTodo(text)) {
+      if (await controller.updateTodo(text)) {
         _textController.clear();
       }
     } else {
       // Add new todo
-      if (controller.addTodo(text)) {
+      if (await controller.addTodo(text)) {
         _textController.clear();
       }
     }
@@ -70,6 +70,20 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('Todo List'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          // Sync indicator
+          Consumer<TodoController>(
+            builder: (context, controller, child) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: Icon(
+                  Icons.cloud_done,
+                  color: controller.isLoading ? Colors.grey : Colors.green,
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<TodoController>(
         builder: (context, controller, child) {
@@ -137,6 +151,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTodoList(TodoController controller) {
+    // Show loading indicator
+    if (controller.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     final todos = controller.filteredTodos;
 
     // Show "No result" message when filtering yields no results

@@ -1,17 +1,50 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/todo.dart';
+import '../services/firebase_service.dart';
 
 class TodoController extends ChangeNotifier {
-  final List<Todo> _todos = [];
+  final FirebaseService _firebaseService = FirebaseService();
+
+  List<Todo> _todos = [];
   String _filterQuery = '';
   String? _editingId;
   String? _warningMessage;
+  bool _isLoading = true;
+  StreamSubscription? _todosSubscription;
+
+  TodoController() {
+    _initFirebaseSync();
+  }
+
+  // Initialize Firebase real-time sync
+  void _initFirebaseSync() {
+    _todosSubscription = _firebaseService.getTodosStream().listen(
+      (todos) {
+        _todos = todos;
+        _isLoading = false;
+        notifyListeners();
+      },
+      onError: (error) {
+        debugPrint('Firebase sync error: $error');
+        _isLoading = false;
+        notifyListeners();
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _todosSubscription?.cancel();
+    super.dispose();
+  }
 
   // Getters
   List<Todo> get todos => _todos;
   String get filterQuery => _filterQuery;
   String? get editingId => _editingId;
   String? get warningMessage => _warningMessage;
+  bool get isLoading => _isLoading;
 
   // Get filtered todos based on search query
   List<Todo> get filteredTodos {
@@ -52,7 +85,7 @@ class TodoController extends ChangeNotifier {
   }
 
   // Add a new todo
-  bool addTodo(String title) {
+  Future<bool> addTodo(String title) async {
     final trimmedTitle = title.trim();
 
     // Validate empty
@@ -72,22 +105,34 @@ class TodoController extends ChangeNotifier {
       return false;
     }
 
-    // Add the todo
+    // Add the todo to Firebase
     final newTodo = Todo(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: '', // Will be replaced by Firebase
       title: trimmedTitle,
     );
-    _todos.add(newTodo);
-    _warningMessage = null;
-    notifyListeners();
-    return true;
+
+    try {
+      await _firebaseService.addTodo(newTodo);
+      _warningMessage = null;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _warningMessage = 'Failed to add todo';
+      notifyListeners();
+      return false;
+    }
   }
 
   // Remove a todo
-  void removeTodo(String id) {
-    _todos.removeWhere((todo) => todo.id == id);
+  Future<void> removeTodo(String id) async {
     if (_editingId == id) {
       _editingId = null;
+    }
+
+    try {
+      await _firebaseService.deleteTodo(id);
+    } catch (e) {
+      debugPrint('Failed to delete todo: $e');
     }
     notifyListeners();
   }
@@ -107,7 +152,7 @@ class TodoController extends ChangeNotifier {
   }
 
   // Update a todo
-  bool updateTodo(String newTitle) {
+  Future<bool> updateTodo(String newTitle) async {
     if (_editingId == null) return false;
 
     final trimmedTitle = newTitle.trim();
@@ -131,23 +176,31 @@ class TodoController extends ChangeNotifier {
       return false;
     }
 
-    // Update the todo
-    final index = _todos.indexWhere((todo) => todo.id == _editingId);
-    if (index != -1) {
-      _todos[index] = _todos[index].copyWith(title: trimmedTitle);
+    // Update the todo in Firebase
+    final todoToUpdate = _todos.firstWhere((todo) => todo.id == _editingId);
+    final updatedTodo = todoToUpdate.copyWith(title: trimmedTitle);
+
+    try {
+      await _firebaseService.updateTodo(updatedTodo);
+      _editingId = null;
+      _warningMessage = null;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _warningMessage = 'Failed to update todo';
+      notifyListeners();
+      return false;
     }
-    _editingId = null;
-    _warningMessage = null;
-    notifyListeners();
-    return true;
   }
 
   // Toggle todo completion status
-  void toggleComplete(String id) {
-    final index = _todos.indexWhere((todo) => todo.id == id);
-    if (index != -1) {
-      _todos[index] = _todos[index].copyWith(isDone: !_todos[index].isDone);
-      notifyListeners();
+  Future<void> toggleComplete(String id) async {
+    final todo = _todos.firstWhere((todo) => todo.id == id);
+
+    try {
+      await _firebaseService.toggleComplete(id, !todo.isDone);
+    } catch (e) {
+      debugPrint('Failed to toggle complete: $e');
     }
   }
 }
